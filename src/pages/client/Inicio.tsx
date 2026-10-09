@@ -62,12 +62,19 @@ export default function Inicio() {
               <span className="v">{num(cur.impressions)}</span>
               <span className="d">{vs(cur.impressions, prev.impressions, num)}</span>
             </div>
-            <div className="kpi">
+            {query.channel !== "google" && <div className="kpi">
               <span className="l">Visualizações de vídeo <InfoTip k="visualizacoes" label="visualizações" /></span>
               <span className="v">{num(cur.video_views)}</span>
               <span className="d">{vs(cur.video_views, prev.video_views, num)}</span>
-            </div>
+            </div>}
           </section>
+          <section className="click-row" aria-label="Cliques e custos de mídia">
+            <div><span>Cliques <InfoTip k="cliques" label="cliques" /></span><strong>{num(cur.clicks)}</strong></div>
+            <div><span>CTR <InfoTip k="ctr" label="CTR" /></span><strong>{cur.ctr == null ? "—" : `${cur.ctr.toLocaleString("pt-BR")}%`}</strong></div>
+            <div><span>Custo por clique <InfoTip k="cpc" label="custo por clique" /></span><strong>{money(cur.cpc)}</strong></div>
+            <div><span>Custo por mil impressões <InfoTip k="cpm" label="custo por mil impressões" /></span><strong>{money(cur.cpm)}</strong></div>
+          </section>
+
           {(d.kpis.alcance.atual != null || cur.thruplays > 0) && query.channel !== "google" && (
             <p className="note">
               {d.kpis.alcance.atual != null && <>Seus anúncios alcançaram <strong style={{ color: "var(--ink)" }}>{num(d.kpis.alcance.atual)} pessoas</strong> no Meta <InfoTip k="alcance" label="alcance" />. </>}
@@ -88,12 +95,22 @@ export default function Inicio() {
                 <div>{resultLabel(obj)}<strong>{num(d.kpis.atual.meta.results)}</strong></div>
                 <div>Por {resultLabel(obj, false)}<strong>{money(d.kpis.atual.meta.cpr)}</strong></div>
               </div>
+              <div className="mini-grid">
+                <div>Cliques · CTR<strong>{num(d.kpis.atual.meta.clicks)} · {d.kpis.atual.meta.ctr ?? "—"}%</strong></div>
+                <div>Custo por clique<strong>{money(d.kpis.atual.meta.cpc)}</strong></div>
+                <div>Custo por mil<strong>{money(d.kpis.atual.meta.cpm)}</strong></div>
+              </div>
               <div className="sep" />
               <div className="channel-row"><span className="dot" style={{ background: "var(--ink)" }} />Google (Pesquisa)</div>
               <div className="mini-grid">
                 <div>Investido<strong>{money(d.kpis.atual.google.spend)}</strong></div>
                 <div>Cliques<strong>{num(d.kpis.atual.google.clicks)}</strong></div>
                 <div>{resultLabel(obj)}<strong>{num(d.kpis.atual.google.results)}</strong></div>
+              </div>
+              <div className="mini-grid">
+                <div>CTR<strong>{d.kpis.atual.google.ctr ?? "—"}%</strong></div>
+                <div>Custo por clique<strong>{money(d.kpis.atual.google.cpc)}</strong></div>
+                <div>Custo por mil<strong>{money(d.kpis.atual.google.cpm)}</strong></div>
               </div>
             </section>
           )}

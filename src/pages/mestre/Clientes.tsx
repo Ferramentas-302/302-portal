@@ -10,6 +10,7 @@ type Row = {
   configurado: boolean; canais: string; objetivo: string | null;
   saldo: { prepago: boolean; bruto: number | null; pendente: boolean } | null;
   rascunhos: number;
+  gerenciador: { ativos: number; analise: number; problema: number; quando: string } | null;
 };
 
 export default function Clientes() {
@@ -25,6 +26,7 @@ export default function Clientes() {
       supabase.from("perf_billing_snapshot").select("cliente_id, is_prepay, balance_gross, account_status"),
       supabase.from("portal_diary_entries").select("cliente_id").eq("status", "draft"),
     ]);
+    const ger = await supabase.from("perf_account_status").select("cliente_id, ads_active, ads_in_review, ads_with_issues, captured_at");
     if (acc.error) { setErr(acc.error.message); return; }
     const cfgBy = new Map((cfg.data ?? []).map((c) => [c.cliente_id, c]));
     const draftBy = new Map<string, number>();
@@ -42,6 +44,11 @@ export default function Clientes() {
         objetivo: c?.primary_objective ?? null,
         saldo: b ? { prepago: !!b.is_prepay, bruto: b.balance_gross, pendente: b.account_status === 9 || b.account_status === 3 } : null,
         rascunhos: draftBy.get(a.cliente_id) ?? 0,
+        gerenciador: (() => {
+          const rs = (ger.data ?? []).filter((x) => x.cliente_id === a.cliente_id);
+          if (!rs.length) return null;
+          return { ativos: rs.reduce((s, x) => s + x.ads_active, 0), analise: rs.reduce((s, x) => s + x.ads_in_review, 0), problema: rs.reduce((s, x) => s + x.ads_with_issues, 0), quando: rs.map((x) => x.captured_at).sort()[0] };
+        })(),
       };
     });
     out.sort((x, y) => Number(y.configurado) - Number(x.configurado) || x.nome.localeCompare(y.nome, "pt-BR"));
@@ -84,7 +91,7 @@ export default function Clientes() {
       )}
       <div className="table-wrap">
         <table className="m">
-          <thead><tr><th scope="col">Cliente</th><th scope="col">Canais</th><th scope="col">Pagamento</th><th scope="col">Portal</th><th scope="col">Último acesso</th><th scope="col">Diário</th><th scope="col" style={{ textAlign: "right" }}>Ações</th></tr></thead>
+          <thead><tr><th scope="col">Cliente</th><th scope="col">Canais</th><th scope="col">Pagamento</th><th scope="col">Portal</th><th scope="col">Gerenciador Meta</th><th scope="col">Último acesso</th><th scope="col">Diário</th><th scope="col" style={{ textAlign: "right" }}>Ações</th></tr></thead>
           <tbody>
             {visible.map((r) => (
               <tr key={r.cliente_id} style={{ opacity: r.configurado ? 1 : 0.55 }}>
@@ -93,6 +100,14 @@ export default function Clientes() {
                 <td>{r.saldo ? (r.saldo.pendente ? <span className="pill warn" style={{ background: "var(--cream)" }}>Pendente</span> : r.saldo.prepago ? `Pix · ${money(r.saldo.bruto)}` : "Cartão") : "—"}</td>
                 <td>
                   <label className="switch"><input type="checkbox" checked={r.enabled} onChange={() => toggle(r)} disabled={!r.configurado} />{r.enabled ? "Ligado" : "Desligado"}</label>
+                </td>
+                <td className="note">
+                  {r.gerenciador ? <>
+                    <strong style={{ color: "var(--ink)" }}>{r.gerenciador.ativos} ativos</strong>
+                    {r.gerenciador.analise ? ` · ${r.gerenciador.analise} em análise` : ""}
+                    {r.gerenciador.problema ? <span style={{ color: "#8a2a12" }}> · {r.gerenciador.problema} c/ problema</span> : ""}
+                    <div style={{ color: Date.now() - new Date(r.gerenciador.quando).getTime() > 2 * 3600_000 ? "#8a2a12" : undefined }}>conferido {ago(r.gerenciador.quando)}</div>
+                  </> : "—"}
                 </td>
                 <td className="note">{r.last_seen_at ? `${ago(r.last_seen_at)} · ${r.views_count}×` : "nunca abriu"}</td>
                 <td>{r.rascunhos ? <Link to={`/mestre/diario?c=${r.cliente_id}`}>{r.rascunhos} rascunho(s)</Link> : <span className="note">—</span>}</td>

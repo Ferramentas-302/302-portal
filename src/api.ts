@@ -11,6 +11,9 @@ export type Kpi = {
   clicks: number;
   video_views: number;
   thruplays: number;
+  ctr: number | null; // %
+  cpc: number | null;
+  cpm: number | null;
 };
 
 export type KpiSet = { total: Kpi; meta: Kpi; google: Kpi };
@@ -19,6 +22,7 @@ export type Creative = Kpi & {
   key: string;
   ad_id: string;
   active: boolean;
+  anuncios: number;
   caption: string | null;
   title: string | null;
   type: "video" | "image";
@@ -60,10 +64,23 @@ export type PortalData = {
   serie_30d: { date: string; meta_spend: number; google_spend: number; results: number }[];
   criativos_ativos: Creative[];
   ranking_30d: Creative[];
-  palavras_chave: unknown[];
+  palavras_chave: Keyword[];
+  leilao_google: Auction | null;
+  gerenciador: ManagerRef[];
   saldo: Balance[];
   diario: DiaryItem[];
 };
+
+export type Keyword = {
+  texto: string; correspondencia: string | null; cliques: number; impressoes: number; custo: number;
+  conversoes: number; ctr: number | null; cpc: number | null; em_primeiro: number | null; parcela_buscas: number | null;
+};
+export type Auction = {
+  parcela: number | null; topo: number | null; primeiro: number | null;
+  perdida_orcamento: number | null; perdida_classificacao: number | null; buscas_elegiveis: number;
+  campanhas: { nome: string | null; impressoes: number; cliques: number; custo: number; parcela: number | null; primeiro: number | null; perdida_orcamento: number | null; perdida_classificacao: number | null }[];
+};
+export type ManagerRef = { anuncios_ativos: number; em_analise: number; com_problema: number; atualizado_em: string; biblioteca_url: string | null };
 
 export type Query = { period: PeriodKey; channel: Channel; since?: string; until?: string };
 

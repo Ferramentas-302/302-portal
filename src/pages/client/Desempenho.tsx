@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Creative } from "../../api";
 import { ChannelChips, PeriodPicker, PreviewModal, Skeleton, SpendChart } from "../../components/ui";
+import { AuctionCard, KeywordsCard } from "../../components/google";
 import { money, num, resultLabel } from "../../format";
 import { useClient } from "./ClientLayout";
 
@@ -30,7 +31,7 @@ export default function Desempenho() {
 
   return (
     <main className="page">
-      <div className="page-head"><h1>Desempenho</h1><p className="sub">Os totais seguem o período escolhido. Campeões, evolução e semanas mostram sempre os últimos 30 dias.</p></div>
+      <div className="page-head"><h1>Desempenho</h1><p className="sub">Os totais, a presença no Google e as palavras-chave seguem o período escolhido. Campeões, evolução e semanas mostram sempre os últimos 30 dias.</p></div>
       <div className="controls">
         <PeriodPicker query={query} range={d?.periodo.atual ?? null} onChange={setQuery} />
         <ChannelChips value={query.channel} hasGoogle={!!d?.cliente.tem_google} onChange={(c) => setQuery({ ...query, channel: c })} />
@@ -65,6 +66,15 @@ export default function Desempenho() {
                 </div>
               ))}
             </section>
+          )}
+
+          {d.cliente.tem_google && query.channel !== "meta" && (
+            <>
+              {d.leilao_google ? <AuctionCard a={d.leilao_google} /> : (
+                <section className="card"><h2>Google · presença nas buscas</h2><p className="note">Ainda não há buscas suficientes neste período para medir a presença com segurança.</p></section>
+              )}
+              <KeywordsCard list={d.palavras_chave} />
+            </>
           )}
 
           {playing && <PreviewModal token={token} c={playing} onClose={() => setPlaying(null)} />}
