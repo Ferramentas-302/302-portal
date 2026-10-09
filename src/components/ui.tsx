@@ -145,7 +145,13 @@ export function PreviewModal({ token, c, onClose }: { token: string; c: Creative
             <div className="skeleton" style={{ height: "100%", borderRadius: 0 }} aria-label="Carregando prévia" />
           )}
         </div>
-        <div className="row-between note" style={{ padding: "8px 14px 12px", alignItems: "center" }}>
+        {c.caption && (
+          <div className="modal-caption">
+            <strong>Legenda</strong>
+            <p>{c.caption}</p>
+          </div>
+        )}
+        <div className="row-between note" style={{ padding: "8px 14px 12px", alignItems: "center", borderTop: "1px solid var(--line)" }}>
           <span>Prévia oficial da Meta, como aparece no Instagram.</span>
           {c.link && <a href={c.link} target="_blank" rel="noreferrer noopener" style={{ whiteSpace: "nowrap" }}>Biblioteca ↗</a>}
         </div>
