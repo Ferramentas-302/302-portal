@@ -1,11 +1,14 @@
-import { ChannelChips, PeriodPicker, Skeleton, SpendChart } from "../../components/ui";
+import { useState } from "react";
+import type { Creative } from "../../api";
+import { ChannelChips, PeriodPicker, PreviewModal, Skeleton, SpendChart } from "../../components/ui";
 import { money, num, resultLabel } from "../../format";
 import { useClient } from "./ClientLayout";
 
 const MEDAL = ["var(--orange)", "var(--tan)", "var(--cream)", "var(--line)", "var(--line)"];
 
 export default function Desempenho() {
-  const { data, loading, error, query, setQuery } = useClient();
+  const { data, loading, error, query, setQuery, token } = useClient();
+  const [playing, setPlaying] = useState<Creative | null>(null);
   const d = data;
   const obj = d?.cliente.objetivo ?? "leads";
   const cur = d?.kpis.atual.total;
@@ -48,10 +51,13 @@ export default function Desempenho() {
               {d.ranking_30d.slice(0, 3).map((c, i) => (
                 <div key={c.key} className="rank">
                   <div style={{ position: "relative", flex: "none" }}>
-                    {c.thumb ? <img src={c.thumb} alt={c.title ?? "Criativo"} loading="lazy" /> : <div className="skeleton" style={{ width: 72, height: 72 }} />}
+                    <button type="button" className="thumb-btn" style={{ background: "none", borderRadius: 10 }} onClick={() => setPlaying(c)} aria-label={`Assistir anúncio: ${c.title ?? "criativo"}`}>
+                      {c.thumb ? <img src={c.thumb} alt="" loading="lazy" /> : <div className="skeleton" style={{ width: 72, height: 72 }} />}
+                    </button>
                     <span className="rank-n" style={{ background: MEDAL[i] }}>{i + 1}º</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+                    <span className={`status-tag ${c.active ? "on" : "off"}`}><span className="d" style={{ background: c.active ? "var(--green)" : "#9a9a9a" }} />{c.active ? "Ativo" : "Pausado"}</span>
                     <strong style={{ fontSize: 13, lineHeight: 1.35 }}>{c.title ?? "Criativo"}</strong>
                     <span className="note"><strong style={{ fontSize: 16, color: "var(--ink)" }}>{num(c.results)}</strong> {resultLabel(obj).toLowerCase()} · {money(c.cpr)} por {resultLabel(obj, false)}</span>
                     <span className="note">{num(c.impressions)} impressões{c.type === "video" ? ` · ${num(c.video_views)} visualizações` : ""}</span>
@@ -60,6 +66,8 @@ export default function Desempenho() {
               ))}
             </section>
           )}
+
+          {playing && <PreviewModal token={token} c={playing} onClose={() => setPlaying(null)} />}
 
           <section className="card" aria-label="Evolução">
             <h2>Evolução dia a dia</h2>
