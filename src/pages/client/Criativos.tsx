@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CreativeCard, PeriodPicker, Skeleton } from "../../components/ui";
+import { ManagerStrip } from "../../components/google";
 import { rangeLabel } from "../../format";
 import { useClient } from "./ClientLayout";
 
@@ -32,6 +33,7 @@ export default function Criativos() {
         )}
       </div>
       {error && <div className="banner">{error}</div>}
+      {data && <ManagerStrip refs={data.gerenciador ?? []} criativos={all.length} />}
       {loading && !data ? (
         <div className="creative-grid">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} h={300} />)}</div>
       ) : list.length ? (

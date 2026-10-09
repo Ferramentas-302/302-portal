@@ -24,6 +24,14 @@ export const GLOSSARIO: Record<string, string> = {
   visualizacoes: "Quantas vezes um vídeo seu foi assistido por 3 segundos ou mais.",
   alcance: "Quantas pessoas diferentes viram seus anúncios ao menos uma vez.",
   thruplay: "Visualizações que foram até o fim do vídeo (ou passaram de 15 segundos).",
+  cliques: "Quantas vezes alguém clicou no anúncio (para ver o perfil, o site, o WhatsApp ou o formulário).",
+  ctr: "Taxa de cliques: de cada 100 vezes que o anúncio apareceu, quantas viraram clique.",
+  cpc: "Custo por clique: investimento dividido pelo número de cliques.",
+  cpm: "Custo por mil impressões: quanto custou mostrar o anúncio mil vezes.",
+  parcela: "De todas as buscas em que seu anúncio podia aparecer no Google, em quantas ele de fato apareceu.",
+  perdida_orcamento: "Buscas em que o anúncio deixou de aparecer porque a verba do dia já tinha acabado.",
+  perdida_classificacao: "Buscas em que o anúncio deixou de aparecer porque outros anunciantes ficaram à frente (lance e qualidade do anúncio).",
+  em_primeiro: "Das vezes que o anúncio apareceu, em quantas ele foi o primeiro da página.",
   saldo: "Valor que ainda está disponível na conta de anúncios pré-paga. Quando acaba, os anúncios param até a próxima recarga.",
 };
 
