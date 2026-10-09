@@ -1,5 +1,4 @@
 import { PORTAL_API } from "./config";
-import { supabase } from "./supabase";
 
 export type PeriodKey = "hoje" | "7d" | "30d" | "mes" | "custom";
 export type Channel = "all" | "meta" | "google";
@@ -72,8 +71,14 @@ export class NotFoundError extends Error {}
 
 async function authHeaders(token: string, params: URLSearchParams): Promise<Record<string, string>> {
   const headers: Record<string, string> = {};
-  const { data } = await supabase.auth.getSession();
-  if (data.session) headers.Authorization = `Bearer ${data.session.access_token}`;
+  // Cliente comum não baixa a biblioteca de login: só carrega se houver sessão de mestre salva.
+  let hasSession = false;
+  try { hasSession = !!localStorage.getItem("302-portal-auth"); } catch { /* storage bloqueado */ }
+  if (hasSession) {
+    const { supabase } = await import("./supabase");
+    const { data } = await supabase.auth.getSession();
+    if (data.session) headers.Authorization = `Bearer ${data.session.access_token}`;
+  }
   // Só no `npm run dev` local: /c/qa-<cliente_id> usa o modo de verificação da portal-api.
   // VITE_QA_SECRET vive em .env.local (fora do git) e não existe no build de produção.
   if (import.meta.env.DEV && import.meta.env.VITE_QA_SECRET && token.startsWith("qa-")) {
