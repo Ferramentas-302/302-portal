@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { fetchPreview, type Balance, type Channel, type Creative, type PeriodKey, type PortalData, type Query } from "../api";
 import { dayMonth, money, num, rangeLabel, resultLabel } from "../format";
+import { WHATSAPP_302 } from "../config";
 
 // ---------------------------------------------------------------- ícones
 const S = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
@@ -13,6 +14,44 @@ export const Icon = {
   down: <svg width="18" height="18" viewBox="0 0 24 24" {...S} strokeWidth={2} aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>,
   play: <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z" /></svg>,
 };
+
+// ---------------------------------------------------------------- glossário (ⓘ)
+export const GLOSSARIO: Record<string, string> = {
+  investimento: "Quanto foi gasto em anúncios no período (valor cobrado pela Meta e pelo Google).",
+  resultados: "O resultado que a campanha busca para você: leads (cadastros) ou conversas iniciadas no WhatsApp/Direct, conforme o objetivo.",
+  custo: "Investimento dividido pelos resultados. Quanto menor, mais eficiente.",
+  impressoes: "Quantas vezes seus anúncios apareceram na tela. A mesma pessoa pode ver mais de uma vez.",
+  visualizacoes: "Quantas vezes um vídeo seu foi assistido por 3 segundos ou mais.",
+  alcance: "Quantas pessoas diferentes viram seus anúncios ao menos uma vez.",
+  thruplay: "Visualizações que foram até o fim do vídeo (ou passaram de 15 segundos).",
+  saldo: "Valor que ainda está disponível na conta de anúncios pré-paga. Quando acaba, os anúncios param até a próxima recarga.",
+};
+
+export function InfoTip({ k, label }: { k: keyof typeof GLOSSARIO; label: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="infotip">
+      <button type="button" className="infotip-btn" aria-label={`O que é ${label}?`} aria-expanded={open} onClick={(e) => { e.stopPropagation(); setOpen(!open); }} onBlur={() => setOpen(false)}>i</button>
+      {open && <span role="tooltip" className="infotip-bubble">{GLOSSARIO[k]}</span>}
+    </span>
+  );
+}
+
+export const whatsappLink = (msg: string) => (WHATSAPP_302 ? `https://wa.me/${WHATSAPP_302}?text=${encodeURIComponent(msg)}` : null);
+
+export function TalkTo302({ cliente, children }: { cliente: string | null; children?: ReactNode }) {
+  const href = whatsappLink(`Olá, equipe 302! Aqui é ${cliente ?? "um cliente"}, vim pelo portal de resultados.`);
+  if (!href) return null;
+  return (
+    <section className="card talk" aria-label="Falar com a 302">
+      <div>
+        <h2>{children ?? "Ficou com alguma dúvida sobre os resultados?"}</h2>
+        <p className="note">A equipe da 302 responde pelo WhatsApp.</p>
+      </div>
+      <a className="btn-dark" href={href} target="_blank" rel="noreferrer noopener">Falar com a 302</a>
+    </section>
+  );
+}
 
 // ---------------------------------------------------------------- período
 const todayBRT = () => {
@@ -118,20 +157,34 @@ export function SpendChart({ data, highlight }: { data: PortalData["serie_30d"];
 export function PreviewModal({ token, c, onClose }: { token: string; c: Creative; onClose: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     let alive = true;
+    const opener = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus();
     fetchPreview(token, c.ad_id).then((u) => alive && setUrl(u)).catch(() => alive && setFailed(true));
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Tab" && boxRef.current) {
+        // mantém o foco do teclado dentro da janela
+        const f = [...boxRef.current.querySelectorAll<HTMLElement>("button, a[href], iframe")];
+        if (!f.length) return;
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
-    return () => { alive = false; document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+    return () => { alive = false; document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; opener?.focus?.(); };
   }, [token, c.ad_id, onClose]);
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label={`Anúncio: ${c.title ?? "criativo"}`} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" ref={boxRef} role="dialog" aria-modal="true" aria-label={`Anúncio: ${c.title ?? "criativo"}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <strong>{c.title ?? "Anúncio"}</strong>
-          <button type="button" className="modal-close" aria-label="Fechar" onClick={onClose}>✕</button>
+          <button type="button" ref={closeRef} className="modal-close" aria-label="Fechar" onClick={onClose}>✕</button>
         </div>
         <div className="modal-frame">
           {url ? (
@@ -193,7 +246,9 @@ export function CreativeCard({ c, objetivo, isNew, token }: { c: Creative; objet
 }
 
 // ---------------------------------------------------------------- saldo
-export function BalanceCard({ b }: { b: Balance }) {
+export function BalanceCard({ b, cliente }: { b: Balance; cliente: string | null }) {
+  const [howTo, setHowTo] = useState(false);
+  const help = whatsappLink(`Olá, equipe 302! Aqui é ${cliente ?? "um cliente"}. Preciso de ajuda com ${b.payment === "prepago" ? "a recarga do saldo" : "o pagamento"} da conta de anúncios.`);
   if (b.payment !== "prepago") {
     return (
       <section className="card balance" aria-label="Pagamento">
@@ -202,7 +257,8 @@ export function BalanceCard({ b }: { b: Balance }) {
           <span className={`pill${b.pending_payment ? " warn" : ""}`}>{b.pending_payment ? "Pagamento pendente" : "Cartão"}</span>
         </div>
         <span style={{ fontSize: 14 }}>{b.payment_label ?? "Cartão de crédito"}</span>
-        {b.pending_payment && <p className="note" style={{ color: "var(--ink)" }}>A Meta sinalizou um pagamento pendente nesta conta. Os anúncios podem parar até a regularização.</p>}
+        {b.pending_payment && <p className="note" style={{ color: "var(--ink)" }}>A Meta sinalizou um pagamento pendente nesta conta. Os anúncios podem parar até a regularização — confira o cartão cadastrado no Gerenciador de Anúncios (Faturamento).</p>}
+        {b.pending_payment && help && <a className="btn-dark" style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", textDecoration: "none", color: "var(--paper)" }} href={help} target="_blank" rel="noreferrer noopener">Pedir ajuda à 302</a>}
       </section>
     );
   }
@@ -211,7 +267,7 @@ export function BalanceCard({ b }: { b: Balance }) {
   return (
     <section className="card balance" aria-label="Saldo">
       <div className="card-head">
-        <h2>Saldo da conta Meta</h2>
+        <h2>Saldo da conta Meta <InfoTip k="saldo" label="saldo" /></h2>
         <span className={`pill${low ? " warn" : ""}`}>{low ? "Saldo baixo" : "Pix · pré-pago"}</span>
       </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
@@ -231,6 +287,15 @@ export function BalanceCard({ b }: { b: Balance }) {
           <span style={{ color: "var(--muted-2)" }}>Última recarga</span>
           <strong>{dayMonth(b.last_recharge.at.slice(0, 10))} · {money(b.last_recharge.amount)}</strong>
         </div>
+      )}
+      <button type="button" className="link-btn no-print" aria-expanded={howTo} onClick={() => setHowTo(!howTo)}>{howTo ? "Ocultar" : "Como recarregar"}</button>
+      {howTo && (
+        <ol className="howto">
+          <li>Abra o <strong>Gerenciador de Anúncios</strong> da Meta (ou o app Meta Business).</li>
+          <li>Vá em <strong>Faturamento e pagamentos</strong> e toque em <strong>Adicionar fundos</strong>.</li>
+          <li>Escolha <strong>Pix</strong>, informe o valor e pague o código gerado. O saldo entra em poucos minutos.</li>
+          {help ? <li>Se preferir, <a href={help} target="_blank" rel="noreferrer noopener">fale com a 302</a> que a gente te orienta.</li> : <li>Se tiver dúvida, a equipe da 302 te orienta.</li>}
+        </ol>
       )}
     </section>
   );

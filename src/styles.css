@@ -212,3 +212,30 @@ table.m code { font-size: 12px; background: #f3f2ef; padding: 4px 8px; border-ra
 .status-tag.on { background: rgba(34, 160, 90, 0.12); color: #146b3a; }
 .status-tag.off { background: var(--line); color: var(--muted-2); }
 .status-tag .d { width: 7px; height: 7px; border-radius: 999px; }
+
+/* ---------- glossário (ⓘ) ---------- */
+.infotip { position: relative; display: inline-flex; vertical-align: middle; }
+.infotip-btn { width: 18px; height: 18px; border-radius: 999px; border: 1px solid currentColor; background: transparent; font-size: 11px; font-weight: 700; line-height: 1; display: inline-flex; align-items: center; justify-content: center; opacity: 0.7; padding: 0; font-style: italic; font-family: Georgia, serif; }
+.infotip-btn::before { content: ""; position: absolute; inset: -13px; }
+.infotip-bubble { position: absolute; z-index: 30; top: 24px; left: -8px; width: 230px; background: var(--ink); color: var(--paper); font-size: 12px; font-weight: 400; line-height: 1.45; padding: 10px 12px; border-radius: 10px; box-shadow: 0 8px 24px rgba(32, 33, 35, 0.2); }
+/* celular: o 1º card (hero) ocupa a linha toda; depois, pares = coluna da esquerda, ímpares = direita */
+.kpi:nth-child(odd):not(.hero) .infotip-bubble { left: auto; right: -8px; }
+.infotip-bubble { max-width: calc(100vw - 48px); }
+@media (min-width: 900px) { .kpi .infotip-bubble { left: -8px; right: auto; } .kpi:nth-child(n+4) .infotip-bubble { left: auto; right: -8px; } }
+
+/* ---------- falar com a 302 / recarga ---------- */
+.card.talk { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.card.talk .note { color: #c9c6c4; }
+.card.talk .btn-dark { background: var(--orange); color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; font-weight: 600; }
+.howto { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.55; display: flex; flex-direction: column; gap: 4px; }
+
+/* ---------- impressão / PDF ---------- */
+@media print {
+  @page { margin: 12mm; }
+  body { background: #fff; }
+  .tabbar, .topnav, .no-print, .banner, .period-pop, .modal-backdrop, .infotip-btn { display: none !important; }
+  main.page { padding: 0; max-width: none; }
+  .card, .kpi, .creative { break-inside: avoid; box-shadow: none; }
+  .kpi.hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .balance, .split-bar, .chart svg, .live-dot { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

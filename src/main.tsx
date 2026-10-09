@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./styles.css";
@@ -7,9 +7,9 @@ import Inicio from "./pages/client/Inicio";
 import Criativos from "./pages/client/Criativos";
 import Desempenho from "./pages/client/Desempenho";
 import Diario from "./pages/client/Diario";
-import MestreLayout from "./pages/mestre/MestreLayout";
-import Clientes from "./pages/mestre/Clientes";
-import DiarioFila from "./pages/mestre/DiarioFila";
+const MestreLayout = lazy(() => import("./pages/mestre/MestreLayout"));
+const Clientes = lazy(() => import("./pages/mestre/Clientes"));
+const DiarioFila = lazy(() => import("./pages/mestre/DiarioFila"));
 
 function Home() {
   return (
@@ -34,9 +34,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="desempenho" element={<Desempenho />} />
           <Route path="diario" element={<Diario />} />
         </Route>
-        <Route path="/mestre" element={<MestreLayout />}>
-          <Route index element={<Clientes />} />
-          <Route path="diario" element={<DiarioFila />} />
+        <Route path="/mestre" element={<Suspense fallback={null}><MestreLayout /></Suspense>}>
+          <Route index element={<Suspense fallback={null}><Clientes /></Suspense>} />
+          <Route path="diario" element={<Suspense fallback={null}><DiarioFila /></Suspense>} />
         </Route>
         <Route path="*" element={<Home />} />
       </Routes>

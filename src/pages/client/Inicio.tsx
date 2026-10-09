@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BalanceCard, ChannelChips, PeriodPicker, Skeleton, SpendChart } from "../../components/ui";
+import { BalanceCard, ChannelChips, InfoTip, PeriodPicker, Skeleton, SpendChart, TalkTo302 } from "../../components/ui";
 import { ago, delta, money, num, resultLabel, stamp } from "../../format";
 import { useClient } from "./ClientLayout";
 
@@ -8,17 +8,24 @@ export default function Inicio() {
   const d = data;
   const cur = d?.kpis.atual.total, prev = d?.kpis.anterior.total;
   const obj = d?.cliente.objetivo ?? "leads";
-  const firstName = d?.cliente.nome ?? "";
   const qs = new URLSearchParams(window.location.search).toString();
+  // "Hoje" ainda está em andamento: comparar com o dia de ontem inteiro seria enganoso.
+  const partial = query.period === "hoje";
+  const vs = (c: number | null, p: number | null, fmt: (n: number | null) => string) =>
+    partial ? "parcial · até agora" : `${delta(c, p) ?? "—"} (${fmt(p)})`;
+  const both = !!d && query.channel === "all" && d.kpis.atual.google.spend > 0;
 
   return (
     <main className="page">
       <div className="page-head">
-        <h1>{firstName ? `Olá, ${firstName}` : "Olá"}</h1>
-        <p className="sub">{d ? `Dados atualizados em ${stamp(d.atualizado_em)} (${ago(d.atualizado_em)})` : "Carregando seus resultados…"}</p>
+        <h1>{d?.cliente.nome ? `Olá, ${d.cliente.nome}` : "Olá"}</h1>
+        <p className="sub">
+          {d ? `Dados atualizados em ${stamp(d.atualizado_em)} (${ago(d.atualizado_em)}).` : "Carregando seus resultados…"}
+          {d?.cliente.tem_google ? " Meta atualiza de hora em hora; Google, 3 vezes ao dia." : ""}
+        </p>
       </div>
 
-      <div className="controls">
+      <div className="controls no-print">
         <PeriodPicker query={query} range={d?.periodo.atual ?? null} onChange={setQuery} />
         <ChannelChips value={query.channel} hasGoogle={!!d?.cliente.tem_google} onChange={(c) => setQuery({ ...query, channel: c })} />
       </div>
@@ -29,20 +36,41 @@ export default function Inicio() {
         <div className="grid-kpi"><Skeleton /><Skeleton /><Skeleton /><Skeleton /></div>
       ) : d && cur && prev ? (
         <>
+          {partial && <p className="note">O dia de hoje ainda está em andamento — os números crescem ao longo do dia.</p>}
           <section className="grid-kpi" aria-label="Resumo do período" style={{ opacity: loading ? 0.6 : 1 }}>
             <div className="kpi hero">
-              <span className="l">{resultLabel(obj)} recebidos</span>
+              <span className="l">{resultLabel(obj)} recebidos <InfoTip k="resultados" label={resultLabel(obj).toLowerCase()} /></span>
               <span className="v">{num(cur.results)}</span>
-              <span className="d">{delta(cur.results, prev.results) ?? "—"} vs período anterior ({num(prev.results)})</span>
+              <span className="d">{partial ? "parcial · até agora" : `${delta(cur.results, prev.results) ?? "—"} vs período anterior (${num(prev.results)})`}</span>
             </div>
-            <div className="kpi"><span className="l">Investimento</span><span className="v">{money(cur.spend)}</span><span className="d">{delta(cur.spend, prev.spend) ?? "—"} ({money(prev.spend)})</span></div>
-            <div className="kpi"><span className="l">Custo por {resultLabel(obj, false)}</span><span className="v">{money(cur.cpr)}</span><span className="d">{delta(cur.cpr, prev.cpr) ?? "—"} ({money(prev.cpr)})</span></div>
-            <div className="kpi"><span className="l">Impressões</span><span className="v">{num(cur.impressions)}</span><span className="d">{delta(cur.impressions, prev.impressions) ?? "—"} ({num(prev.impressions)})</span></div>
-            <div className="kpi"><span className="l">Visualizações de vídeo</span><span className="v">{num(cur.video_views)}</span><span className="d">{delta(cur.video_views, prev.video_views) ?? "—"} ({num(prev.video_views)})</span></div>
+            <div className="kpi">
+              <span className="l">Investimento <InfoTip k="investimento" label="investimento" /></span>
+              <span className="v">{money(cur.spend)}</span>
+              <span className="d">{vs(cur.spend, prev.spend, money)}</span>
+            </div>
+            <div className="kpi">
+              <span className="l">Custo por {resultLabel(obj, false)} <InfoTip k="custo" label={`custo por ${resultLabel(obj, false)}`} /></span>
+              <span className="v">{money(cur.cpr)}</span>
+              <span className="d">
+                {both
+                  ? <>Meta {money(d.kpis.atual.meta.cpr)} · Google {d.kpis.atual.google.results ? money(d.kpis.atual.google.cpr) : `sem ${resultLabel(obj).toLowerCase()} registrados`}</>
+                  : vs(cur.cpr, prev.cpr, money)}
+              </span>
+            </div>
+            <div className="kpi">
+              <span className="l">Impressões <InfoTip k="impressoes" label="impressões" /></span>
+              <span className="v">{num(cur.impressions)}</span>
+              <span className="d">{vs(cur.impressions, prev.impressions, num)}</span>
+            </div>
+            <div className="kpi">
+              <span className="l">Visualizações de vídeo <InfoTip k="visualizacoes" label="visualizações" /></span>
+              <span className="v">{num(cur.video_views)}</span>
+              <span className="d">{vs(cur.video_views, prev.video_views, num)}</span>
+            </div>
           </section>
           {(d.kpis.alcance.atual != null || cur.thruplays > 0) && query.channel !== "google" && (
             <p className="note">
-              {d.kpis.alcance.atual != null && <>Seus anúncios alcançaram <strong style={{ color: "var(--ink)" }}>{num(d.kpis.alcance.atual)} pessoas</strong> no Meta. </>}
+              {d.kpis.alcance.atual != null && <>Seus anúncios alcançaram <strong style={{ color: "var(--ink)" }}>{num(d.kpis.alcance.atual)} pessoas</strong> no Meta <InfoTip k="alcance" label="alcance" />. </>}
               {cur.thruplays > 0 && <>{num(cur.thruplays)} visualizações foram até o fim do vídeo (ou passaram de 15 segundos).</>}
             </p>
           )}
@@ -71,7 +99,7 @@ export default function Inicio() {
           )}
 
           <section className="card" aria-label="Últimos 30 dias">
-            <div className="card-head"><h2>Últimos 30 dias</h2><Link to={`/c/${token}/desempenho${qs ? `?${qs}` : ""}`}>Ver evolução</Link></div>
+            <div className="card-head"><h2>Últimos 30 dias</h2><Link className="no-print" to={`/c/${token}/desempenho${qs ? `?${qs}` : ""}`}>Ver evolução</Link></div>
             <div className="chart-legend">
               <span><span className="dot" style={{ background: "var(--orange)", borderRadius: 2 }} />{resultLabel(obj)} por dia</span>
               <span><span style={{ width: 14, height: 2, background: "var(--ink)" }} />Investimento</span>
@@ -83,7 +111,7 @@ export default function Inicio() {
             <section className="card" aria-label="Criativos ativos">
               <div className="card-head">
                 <h2 style={{ display: "flex", alignItems: "center", gap: 10 }}><span className="live-dot" aria-hidden="true" />Criativos ativos · {d.criativos_ativos.length}</h2>
-                <Link to={`/c/${token}/criativos${qs ? `?${qs}` : ""}`}>Ver todos</Link>
+                <Link className="no-print" to={`/c/${token}/criativos${qs ? `?${qs}` : ""}`}>Ver todos</Link>
               </div>
               {d.criativos_ativos.length ? (
                 <div className="thumbs-3 preview">
@@ -93,7 +121,14 @@ export default function Inicio() {
             </section>
           )}
 
-          {query.channel !== "google" && d.saldo.map((b) => <BalanceCard key={b.updated_at + b.platform + b.payment_label} b={b} />)}
+          {query.channel !== "google" && d.saldo.map((b) => <BalanceCard key={b.updated_at + b.platform + b.payment_label} b={b} cliente={d.cliente.nome} />)}
+
+          <div className="no-print"><TalkTo302 cliente={d.cliente.nome} /></div>
+
+          <div className="no-print" style={{ display: "flex", justifyContent: "center" }}>
+            <button type="button" className="btn-line" onClick={() => window.print()}>Salvar em PDF</button>
+          </div>
+          <p className="note no-print" style={{ textAlign: "center" }}>Na janela de impressão, escolha “Salvar como PDF” (atalho Ctrl+P ou ⌘+P).</p>
         </>
       ) : null}
     </main>

@@ -30,7 +30,7 @@ export default function Desempenho() {
 
   return (
     <main className="page">
-      <div className="page-head"><h1>Desempenho</h1><p className="sub">Evolução e os criativos que mais trouxeram resultado.</p></div>
+      <div className="page-head"><h1>Desempenho</h1><p className="sub">Os totais seguem o período escolhido. Campeões, evolução e semanas mostram sempre os últimos 30 dias.</p></div>
       <div className="controls">
         <PeriodPicker query={query} range={d?.periodo.atual ?? null} onChange={setQuery} />
         <ChannelChips value={query.channel} hasGoogle={!!d?.cliente.tem_google} onChange={(c) => setQuery({ ...query, channel: c })} />
@@ -38,7 +38,7 @@ export default function Desempenho() {
       {error && <div className="banner">{error}</div>}
       {loading && !d ? <Skeleton h={300} /> : d && cur ? (
         <>
-          <section className="grid-kpi" aria-label="Totais do período">
+          <section className="grid-kpi" aria-label="Totais do período escolhido">
             <div className="kpi"><span className="l">Investido</span><span className="v">{money(cur.spend)}</span></div>
             <div className="kpi"><span className="l">{resultLabel(obj)}</span><span className="v">{num(cur.results)}</span></div>
             <div className="kpi"><span className="l">Por {resultLabel(obj, false)}</span><span className="v">{money(cur.cpr)}</span></div>
@@ -70,7 +70,7 @@ export default function Desempenho() {
           {playing && <PreviewModal token={token} c={playing} onClose={() => setPlaying(null)} />}
 
           <section className="card" aria-label="Evolução">
-            <h2>Evolução dia a dia</h2>
+            <h2>Evolução dia a dia · últimos 30 dias</h2>
             <div className="chart-legend">
               <span><span className="dot" style={{ background: "var(--orange)", borderRadius: 2 }} />{resultLabel(obj)}</span>
               <span><span style={{ width: 14, height: 2, background: "var(--ink)" }} />Investimento</span>
@@ -80,7 +80,7 @@ export default function Desempenho() {
 
           {weeks.length > 0 && (
             <section className="card" aria-label="Semana a semana">
-              <h2>Semana a semana</h2>
+              <h2>Semana a semana · últimas 4 semanas</h2>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                   <thead><tr style={{ color: "var(--muted)", fontSize: 11, textAlign: "right" }}>
