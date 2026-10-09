@@ -6,7 +6,7 @@ import { useClient } from "./ClientLayout";
 type Filter = "todos" | "resultado" | "reconhecimento";
 
 export default function Criativos() {
-  const { data, loading, error, query, setQuery } = useClient();
+  const { data, loading, error, query, setQuery, token } = useClient();
   const [filter, setFilter] = useState<Filter>("todos");
   const all = data?.criativos_ativos ?? [];
   const list = filter === "todos" ? all : all.filter((c) => c.goal === filter);
@@ -36,12 +36,12 @@ export default function Criativos() {
         <div className="creative-grid">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} h={300} />)}</div>
       ) : list.length ? (
         <div className="creative-grid" style={{ opacity: loading ? 0.6 : 1 }}>
-          {list.map((c) => <CreativeCard key={c.key} c={c} objetivo={data!.cliente.objetivo} isNew={recent(c.since)} />)}
+          {list.map((c) => <CreativeCard key={c.key} c={c} objetivo={data!.cliente.objetivo} isNew={recent(c.since)} token={token} />)}
         </div>
       ) : (
         <p className="empty">Nenhum criativo ativo neste momento.</p>
       )}
-      <p className="note">“Ver anúncio” abre a Biblioteca de Anúncios da Meta com tudo o que está no ar na sua página.</p>
+      <p className="note">Toque no criativo para assistir ao anúncio como ele aparece no Instagram.</p>
     </main>
   );
 }

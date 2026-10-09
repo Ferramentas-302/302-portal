@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Balance, Channel, Creative, PeriodKey, PortalData, Query } from "../api";
+import { fetchPreview, type Balance, type Channel, type Creative, type PeriodKey, type PortalData, type Query } from "../api";
 import { dayMonth, money, num, rangeLabel, resultLabel } from "../format";
 
 // ---------------------------------------------------------------- ícones
@@ -114,24 +114,80 @@ export function SpendChart({ data, highlight }: { data: PortalData["serie_30d"];
   );
 }
 
+// ---------------------------------------------------------------- prévia do anúncio (play + legenda)
+export function PreviewModal({ token, c, onClose }: { token: string; c: Creative; onClose: () => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetchPreview(token, c.ad_id).then((u) => alive && setUrl(u)).catch(() => alive && setFailed(true));
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { alive = false; document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [token, c.ad_id, onClose]);
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label={`Anúncio: ${c.title ?? "criativo"}`} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <strong>{c.title ?? "Anúncio"}</strong>
+          <button type="button" className="modal-close" aria-label="Fechar" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-frame">
+          {url ? (
+            <iframe src={url} title={`Prévia do anúncio: ${c.title ?? ""}`} allow="autoplay; encrypted-media; fullscreen" referrerPolicy="no-referrer" />
+          ) : failed ? (
+            <div className="empty">
+              Não foi possível carregar a prévia agora.
+              {c.link && <p style={{ marginTop: 10 }}><a href={c.link} target="_blank" rel="noreferrer noopener">Ver na Biblioteca de Anúncios ↗</a></p>}
+            </div>
+          ) : (
+            <div className="skeleton" style={{ height: "100%", borderRadius: 0 }} aria-label="Carregando prévia" />
+          )}
+        </div>
+        {c.caption && (
+          <div className="modal-caption">
+            <strong>Legenda</strong>
+            <p>{c.caption}</p>
+          </div>
+        )}
+        <div className="row-between note" style={{ padding: "8px 14px 12px", alignItems: "center", borderTop: "1px solid var(--line)" }}>
+          <span>Prévia oficial da Meta, como aparece no Instagram.</span>
+          {c.link && <a href={c.link} target="_blank" rel="noreferrer noopener" style={{ whiteSpace: "nowrap" }}>Biblioteca ↗</a>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- criativo
-export function CreativeCard({ c, objetivo, isNew }: { c: Creative; objetivo: string; isNew?: boolean }) {
+export function CreativeCard({ c, objetivo, isNew, token }: { c: Creative; objetivo: string; isNew?: boolean; token: string }) {
+  const [playing, setPlaying] = useState(false);
+  const [showCaption, setShowCaption] = useState(false);
   const rows: [string, string][] = c.goal === "reconhecimento"
     ? [["Visualizações", num(c.video_views)], ["Até o fim", num(c.thruplays)], ["Impressões", num(c.impressions)]]
     : [[resultLabel(objetivo), num(c.results)], [`Por ${resultLabel(objetivo, false)}`, money(c.cpr)], ["Impressões", num(c.impressions)], ["Visualizações", c.type === "video" ? num(c.video_views) : "—"]];
   return (
     <article className="creative">
-      <div className="thumb">
-        {c.thumb ? <img src={c.thumb} alt={c.title ?? "Criativo"} loading="lazy" /> : null}
+      <button type="button" className="thumb thumb-btn" onClick={() => setPlaying(true)} aria-label={`${c.type === "video" ? "Assistir" : "Ver"} anúncio: ${c.title ?? "criativo"}`}>
+        {c.thumb ? <img src={c.thumb} alt="" loading="lazy" /> : null}
         {isNew && <span className="badge new">Novo</span>}
-        {c.type === "video" && <span className="badge type">{Icon.play} Vídeo</span>}
-      </div>
+        <span className="play-overlay" aria-hidden="true">{c.type === "video" ? Icon.play : "Ver"}</span>
+      </button>
       <div className="body">
         <h3>{c.title ?? "Criativo"}</h3>
         <span className="meta">{c.goal === "reconhecimento" ? "Reconhecimento" : "Captação"} · desde {dayMonth(c.since)}</span>
         <div className="stats">{rows.map(([k, v]) => <div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div>
-        {c.link && <a className="see" href={c.link} target="_blank" rel="noreferrer noopener">Ver anúncio ↗</a>}
+        {c.caption && (
+          <>
+            <button type="button" className="link-btn" aria-expanded={showCaption} onClick={() => setShowCaption(!showCaption)}>
+              {showCaption ? "Ocultar legenda" : "Ver legenda"}
+            </button>
+            {showCaption && <p className="caption">{c.caption}</p>}
+          </>
+        )}
       </div>
+      {playing && <PreviewModal token={token} c={c} onClose={() => setPlaying(false)} />}
     </article>
   );
 }

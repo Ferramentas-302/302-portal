@@ -18,6 +18,9 @@ export type KpiSet = { total: Kpi; meta: Kpi; google: Kpi };
 
 export type Creative = Kpi & {
   key: string;
+  ad_id: string;
+  active: boolean;
+  caption: string | null;
   title: string | null;
   type: "video" | "image";
   thumb: string | null;
@@ -67,17 +70,10 @@ export type Query = { period: PeriodKey; channel: Channel; since?: string; until
 
 export class NotFoundError extends Error {}
 
-export async function fetchPortal(token: string, q: Query, signal?: AbortSignal): Promise<PortalData> {
-  const params = new URLSearchParams({ t: token, period: q.period, channel: q.channel });
-  if (q.period === "custom" && q.since && q.until) {
-    params.set("since", q.since);
-    params.set("until", q.until);
-  }
-  // Se o mestre estiver logado, manda o JWT: permite a prévia de portal ainda desligado.
+async function authHeaders(token: string, params: URLSearchParams): Promise<Record<string, string>> {
   const headers: Record<string, string> = {};
   const { data } = await supabase.auth.getSession();
   if (data.session) headers.Authorization = `Bearer ${data.session.access_token}`;
-
   // Só no `npm run dev` local: /c/qa-<cliente_id> usa o modo de verificação da portal-api.
   // VITE_QA_SECRET vive em .env.local (fora do git) e não existe no build de produção.
   if (import.meta.env.DEV && import.meta.env.VITE_QA_SECRET && token.startsWith("qa-")) {
@@ -85,6 +81,25 @@ export async function fetchPortal(token: string, q: Query, signal?: AbortSignal)
     params.set("cliente_id", token.slice(3));
     headers["x-sync-secret"] = import.meta.env.VITE_QA_SECRET;
   }
+  return headers;
+}
+
+// Link da prévia oficial do anúncio (gerado na hora: o link da Meta expira).
+export async function fetchPreview(token: string, adId: string): Promise<string> {
+  const params = new URLSearchParams({ t: token, preview: adId });
+  const headers = await authHeaders(token, params);
+  const res = await fetch(`${PORTAL_API}?${params}`, { headers });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()).url;
+}
+
+export async function fetchPortal(token: string, q: Query, signal?: AbortSignal): Promise<PortalData> {
+  const params = new URLSearchParams({ t: token, period: q.period, channel: q.channel });
+  if (q.period === "custom" && q.since && q.until) {
+    params.set("since", q.since);
+    params.set("until", q.until);
+  }
+  const headers = await authHeaders(token, params);
 
   const res = await fetch(`${PORTAL_API}?${params}`, { headers, signal });
   if (res.status === 404) throw new NotFoundError("not found");
