@@ -93,7 +93,7 @@ export function ManagerStrip({ refs, criativos }: { refs: ManagerRef[]; criativo
     <div className="manager-strip">
       <span>
         <strong>{num(ativos)} {ativos === 1 ? "anúncio ativo" : "anúncios ativos"}</strong> no Gerenciador da Meta
-        {ativos !== criativos ? `, agrupados em ${criativos} ${criativos === 1 ? "criativo" : "criativos"} (o mesmo vídeo em públicos diferentes conta uma vez)` : ""}.
+        {ativos !== criativos ? `, agrupados em ${criativos} ${criativos === 1 ? "criativo" : "criativos"} (o mesmo anúncio — mesmo vídeo ou imagem e mesmo texto — rodando em públicos diferentes conta uma vez)` : ""}.
         {analise > 0 ? ` ${analise} em análise, entrando no ar.` : ""} Conferido {ago(quando)} ({stamp(quando)}).
       </span>
       {lib && <a href={lib} target="_blank" rel="noreferrer noopener">Ver na Biblioteca de Anúncios ↗</a>}
